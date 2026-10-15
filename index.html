@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>İklimSağlık Pro | Akıllı Çevre Sağlığı ve Meteoroloji Portalı</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Chart.js Kütüphanesi -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+    <!-- Üst Navigasyon -->
+    <header class="navbar no-print">
+        <div class="nav-container">
+            <div class="logo">
+                <span class="logo-icon">🌤️</span>
+                <span class="logo-text">İklimSağlık <span>Pro</span></span>
+            </div>
+            <div class="nav-badge">Canlı Çevre Sağlığı Sistemi</div>
+        </div>
+    </header>
+
+    <!-- Ana 3 Sütunlu Dashboard Grid Yerleşimi -->
+    <div class="app-container">
+        
+        <!-- 1. EN SOL SÜTUN: Sabit Kısayol Menüsü -->
+        <aside class="shortcut-sidebar no-print">
+            <div class="shortcut-header">
+                <h3>Kısayollar</h3>
+            </div>
+            <nav class="shortcut-nav">
+                <button type="button" class="shortcut-btn active" data-target="analiz">
+                    <span class="sc-icon">📊</span>
+                    <span>Analiz Paneli</span>
+                </button>
+                <button type="button" class="shortcut-btn" id="openIlkYardimModal">
+                    <span class="sc-icon">🚨</span>
+                    <span>İlk Yardım</span>
+                </button>
+                <button type="button" class="shortcut-btn" id="openBultenModal">
+                    <span class="sc-icon">📢</span>
+                    <span>Bültenler</span>
+                </button>
+                <button type="button" class="shortcut-btn" id="printShortcutBtn">
+                    <span class="sc-icon">🖨️</span>
+                    <span>Rapor Yazdır</span>
+                </button>
+            </nav>
+        </aside>
+
+        <!-- 2. ORTA SÜTUN: Kontrol Paneli / Form -->
+        <aside class="sidebar-panel no-print" id="analiz">
+            <div class="panel-header">
+                <h2>Kontrol Paneli</h2>
+                <p>Konum ve hassasiyet profili seçin.</p>
+            </div>
+            
+            <form id="riskForm" class="control-form" novalidate>
+                <div class="form-group">
+                    <label for="cityName">Şehir veya Konum</label>
+                    <div class="input-with-btn">
+                        <input type="text" id="cityName" name="cityName" placeholder="Örn: İstanbul, Ankara" required>
+                        <button type="button" id="geoBtn" class="btn-secondary" title="Konumumu Bul">📍 Konum</button>
+                    </div>
+                    <small class="error-message" id="cityError"></small>
+                </div>
+
+                <div class="form-group">
+                    <label for="healthProfile">Hassasiyet Profili</label>
+                    <select id="healthProfile" class="form-select">
+                        <option value="general">Genel / Standart Yetişkin</option>
+                        <option value="sensitive">Yaşlı veya Çocuk (Hassas Grup)</option>
+                        <option value="asthma">Astım / Solunum Yolu</option>
+                        <option value="athlete">Açık Hava Sporcusu</option>
+                    </select>
+                </div>
+
+                <!-- Favori Şehirler -->
+                <div id="favoritesContainer" class="favorites-box hidden">
+                    <span class="fav-label">Hızlı Erişim:</span>
+                    <div id="favButtons" class="fav-buttons"></div>
+                </div>
+
+                <button type="submit" class="btn-primary" id="submitBtn">
+                    <span>Analizi Başlat</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </button>
+            </form>
+
+            <div class="sidebar-info-box">
+                <h4>ℹ️ Sistem Bilgisi</h4>
+                <p>Open-Meteo uydu verileri ve hava kalitesi API'si ile anlık çevresel risk hesaplaması yapar.</p>
+            </div>
+        </aside>
+
+        <!-- 3. SAĞ SÜTUN: Ana İçerik ve Sonuçlar Alanı -->
+        <main class="main-content">
+            
+            <!-- Yükleniyor Ekranı -->
+            <div id="loading" class="panel loading-panel hidden no-print">
+                <div class="spinner"></div>
+                <p>Canlı meteoroloji verileri taranıyor, lütfen bekleyin...</p>
+            </div>
+
+            <!-- Başlangıç Karşılama Paneli -->
+            <div class="panel welcome-panel no-print" id="welcomePanel">
+                <div class="welcome-icon">📊</div>
+                <h3>Analiz Paneline Hoş Geldiniz</h3>
+                <p>Sol taraftaki panelden bir şehir aratarak veya "Konum" butonuna basarak canlı hava sağlığı raporunuzu ve grafiklerinizi hemen oluşturun.</p>
+            </div>
+
+            <!-- Sonuç ve Grafik Paneli -->
+            <div class="results-dashboard hidden" id="resultCard">
+                
+                <div class="action-bar no-print">
+                    <button type="button" id="printBtn" class="btn-outline">🖨️ Raporu Yazdır / PDF İndir</button>
+                </div>
+
+                <!-- Risk ve Metrik Özeti -->
+                <section class="panel risk-overview-panel">
+                    <div id="riskBanner" class="risk-banner"></div>
+                    <div id="resultContent" class="result-content-grid"></div>
+                </section>
+
+                <!-- Saatlik Risk Pencereleri -->
+                <section class="panel hourly-risk-panel">
+                    <div class="panel-header" style="margin-bottom: 12px;">
+                        <h3>⏰ Saatlik Risk Pencereleri</h3>
+                        <p style="font-size: 0.85rem;">Günün ilerleyen saatlerindeki kritik zaman dilimleri.</p>
+                    </div>
+                    <div id="hourlyRiskContent" class="hourly-risk-grid"></div>
+                </section>
+
+                <!-- Çoklu Grafik Alanı -->
+                <div class="charts-grid-modern">
+                    <section class="panel chart-panel">
+                        <h3>🌡️ Sıcaklık & Hissedilen</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="tempChart"></canvas>
+                        </div>
+                    </section>
+                    
+                    <section class="panel chart-panel">
+                        <h3>💧 Nem & UV İndeksi</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="envChart"></canvas>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL 1: İlk Yardım ve Acil Durum Açılır Penceresi -->
+    <div id="ilkYardimModal" class="modal hidden">
+        <div class="modal-content">
+            <button type="button" class="modal-close" id="closeIlkYardimModal">&times;</button>
+            <div class="panel-header" style="margin-bottom: 15px;">
+                <h2>🚨 Canlı İlk Yardım ve Acil Durum Rehberi</h2>
+                <p>Sıcak hava dalgaları için hayat kurtaran ilk yardım adımları.</p>
+            </div>
+
+            <div id="liveEmergencyStatus" class="live-status-box normal" style="margin-bottom: 15px;">
+                🟢 <strong>Sistem Durumu:</strong> Henüz konum analizi yapılmadı. Aşağıdaki rehberi inceleyebilirsiniz.
+            </div>
+
+            <div class="emergency-grid-modal">
+                <div class="emergency-card">
+                    <h4>🌡️ Sıcak Çarpması</h4>
+                    <p><strong>Belirtiler:</strong> 39°C üstü ateş, hızlı nabız, baş dönmesi.</p>
+                    <p><strong>Müdahale:</strong> Gölgeye alın, sıkı giysileri gevşetin, serin kompres uygulayın, 112'yi arayın.</p>
+                </div>
+
+                <div class="emergency-card">
+                    <h4>💧 Şiddetli Su Kaybı</h4>
+                    <p><strong>Belirtiler:</strong> Aşırı susuzluk, halsizlik, koyu renkli idrar.</p>
+                    <p><strong>Müdahale:</strong> Serin yere geçin, küçük yudumlarla su veya elektrolit tüketin.</p>
+                </div>
+
+                <div class="emergency-card">
+                    <h4>☀️ Güneş Yanığı</h4>
+                    <p><strong>Belirtiler:</strong> Ciltte kızarıklık, hassasiyet ve sıcaklık hissi.</p>
+                    <p><strong>Müdahale:</strong> Nemli bez uygulayın, nemlendirici sürün, kabarcıkları patlatmayın.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: Güncel Meteoroloji ve Sağlık Bülteni Açılır Penceresi -->
+    <div id="bultenModal" class="modal hidden">
+        <div class="modal-content">
+            <button type="button" class="modal-close" id="closeBultenModal">&times;</button>
+            <div class="panel-header" style="margin-bottom: 15px;">
+                <h2>📢 Güncel Meteoroloji ve Sağlık Bülteni</h2>
+                <p>Uzmanlardan çevresel riskler ve korunma rehberleri.</p>
+            </div>
+            <div id="newsContent" class="news-grid-modal"></div>
+        </div>
+    </div>
+
+    <!-- Alt Bilgi -->
+    <footer class="site-footer no-print">
+        <p>&copy; 2026 İklimSağlık Pro. Eğitim amaçlı prototip sistemidir. Veri Altyapısı: Open-Meteo API</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
